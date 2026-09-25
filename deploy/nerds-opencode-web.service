@@ -1,0 +1,17 @@
+[Unit]
+Description=Nerds OpenCode Web
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=opencode
+WorkingDirectory=/opt/nerds-opencode-web
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/node /opt/nerds-opencode-web/src/serve.mjs serve --host 127.0.0.1 --port 3000
+Restart=always
+RestartSec=2
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target

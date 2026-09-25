@@ -1,0 +1,127 @@
+diff --git a/packages/app/index.html b/packages/app/index.html
+index d71535182c..afa3c7cb6f 100644
+--- a/packages/app/index.html
++++ b/packages/app/index.html
+@@ -2,22 +2,23 @@
+ <html lang="en" style="background-color: var(--v2-background-bg-deep, #fafafa)">
+   <head>
+     <meta charset="utf-8" />
++    <base href="%BASE_URL%" />
+     <meta
+       name="viewport"
+       content="width=device-width, initial-scale=1, interactive-widget=resizes-content, viewport-fit=cover"
+     />
+     <title>OpenCode</title>
+-    <link rel="icon" type="image/png" href="/favicon-96x96-v3.png" sizes="96x96" />
+-    <link rel="icon" type="image/svg+xml" href="/favicon-v3.svg" />
+-    <link rel="shortcut icon" href="/favicon-v3.ico" />
+-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-v3.png" />
+-    <link rel="manifest" href="/site.webmanifest" />
++    <link rel="icon" type="image/png" href="%BASE_URL%favicon-96x96-v3.png" sizes="96x96" />
++    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon-v3.svg" />
++    <link rel="shortcut icon" href="%BASE_URL%favicon-v3.ico" />
++    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%apple-touch-icon-v3.png" />
++    <link rel="manifest" href="%BASE_URL%manifest.json" />
+     <meta name="theme-color" content="#fafafa" />
+     <meta name="mobile-web-app-capable" content="yes" />
+     <meta name="apple-mobile-web-app-capable" content="yes" />
+     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+-    <meta property="og:image" content="/social-share.png" />
+-    <meta property="twitter:image" content="/social-share.png" />
++    <meta property="og:image" content="%BASE_URL%social-share.png" />
++    <meta property="twitter:image" content="%BASE_URL%social-share.png" />
+     <script id="oc-theme-preload-script" src="/oc-theme-preload.js"></script>
+   </head>
+   <body class="antialiased overscroll-none text-12-regular overflow-hidden bg-v2-background-bg-deep">
+diff --git a/packages/app/src/entry.tsx b/packages/app/src/entry.tsx
+index 6e5f63fd4e..83b7e66d7c 100644
+--- a/packages/app/src/entry.tsx
++++ b/packages/app/src/entry.tsx
+@@ -11,6 +11,7 @@ import { dict as zh } from "@/i18n/zh"
+ import { authFromToken } from "@/utils/server"
+ import pkg from "../package.json"
+ import { ServerConnection } from "./context/server"
++import { Router } from "@solidjs/router"
+ 
+ const DEFAULT_SERVER_URL_KEY = "opencode.settings.dat:defaultServerUrl"
+ 
+@@ -103,6 +104,15 @@ const getCurrentUrl = () => {
+   return location.origin
+ }
+ 
++const apiFetch = Object.assign((input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
++  const request = new Request(input, init)
++  const url = new URL(request.url)
++  const base = import.meta.env.BASE_URL
++  if (base === "/" || url.origin !== location.origin || url.pathname.startsWith(base)) return fetch(request)
++  url.pathname = `${base}__api${url.pathname}`
++  return fetch(new Request(url, request))
++}, { preconnect: fetch.preconnect })
++
+ const getDefaultUrl = () => {
+   const lsDefault = readDefaultServerUrl()
+   if (lsDefault) return lsDefault
+@@ -118,6 +128,7 @@ const clearAuthToken = () => {
+ 
+ const platform: Platform = {
+   platform: "web",
++  fetch: apiFetch,
+   draftStore: createBrowserDraftStore(),
+   version: pkg.version,
+   openExternal,
+@@ -166,6 +177,7 @@ if (root instanceof HTMLElement) {
+         <PlatformProvider value={platform}>
+           <AppBaseProviders locale={locale}>
+             <AppInterface
++              router={(props) => <Router {...props} base={import.meta.env.BASE_URL} />}
+               defaultServer={ServerConnection.Key.make(getDefaultUrl())}
+               canonicalLocalServer={ServerConnection.key(server)}
+               servers={[server]}
+diff --git a/packages/app/src/utils/terminal-websocket-url.ts b/packages/app/src/utils/terminal-websocket-url.ts
+index a32b239cc9..e698e5ac13 100644
+--- a/packages/app/src/utils/terminal-websocket-url.ts
++++ b/packages/app/src/utils/terminal-websocket-url.ts
+@@ -14,6 +14,9 @@ export function terminalWebSocketURL(input: {
+ }) {
+   const isV1 = input.protocol === "v1"
+   const next = new URL(`${input.url}${isV1 ? `/pty/${input.id}/connect` : `/api/pty/${input.id}/connect`}`)
++  const base = import.meta.env?.BASE_URL ?? "/"
++  if (base !== "/" && typeof location !== "undefined" && next.origin === location.origin)
++    next.pathname = `${base}__api${next.pathname}`
+   if (isV1) {
+     next.searchParams.set("directory", input.directory)
+   } else {
+diff --git a/packages/app/vite.config.ts b/packages/app/vite.config.ts
+index 8df324ddc9..86f91bbcda 100644
+--- a/packages/app/vite.config.ts
++++ b/packages/app/vite.config.ts
+@@ -20,6 +20,7 @@ const sentry =
+     : false
+ 
+ export default defineConfig({
++  base: process.env.OPENCODE_WEB_BASE ?? "/",
+   plugins: [desktopPlugin, sentry] as any,
+   server: {
+     host: "0.0.0.0",
+diff --git a/packages/ui/src/components/favicon.tsx b/packages/ui/src/components/favicon.tsx
+index 94cc82489f..dfeff91bd6 100644
+--- a/packages/ui/src/components/favicon.tsx
++++ b/packages/ui/src/components/favicon.tsx
+@@ -1,12 +1,13 @@
+ import { Link, Meta } from "@solidjs/meta"
+ 
+ export const Favicon = () => {
++  const base = typeof document === "undefined" ? "/" : (document.querySelector("base")?.getAttribute("href") ?? "/")
+   return (
+     <>
+-      <Link rel="icon" type="image/png" href="/favicon-96x96-v3.png" sizes="96x96" />
+-      <Link rel="shortcut icon" href="/favicon-v3.ico" />
+-      <Link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-v3.png" />
+-      <Link rel="manifest" href="/site.webmanifest" />
++      <Link rel="icon" type="image/png" href={`${base}favicon-96x96-v3.png`} sizes="96x96" />
++      <Link rel="shortcut icon" href={`${base}favicon-v3.ico`} />
++      <Link rel="apple-touch-icon" sizes="180x180" href={`${base}apple-touch-icon-v3.png`} />
++      <Link rel="manifest" href={`${base}manifest.json`} />
+       <Meta name="apple-mobile-web-app-title" content="OpenCode" />
+     </>
+   )

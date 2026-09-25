@@ -1,0 +1,17 @@
+{
+  "name": "nerds-opencode-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "nerds-opencode-web": "./src/serve.mjs"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "serve": "node src/serve.mjs serve",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
