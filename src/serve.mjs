@@ -10,12 +10,14 @@ import { fileURLToPath } from "node:url"
 
 const project = resolve(fileURLToPath(new URL("..", import.meta.url)))
 const types = {
+  ".aac": "audio/aac",
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
   ".ico": "image/x-icon",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".map": "application/json; charset=utf-8",
+  ".mp4": "video/mp4",
   ".png": "image/png",
   ".svg": "image/svg+xml",
   ".ttf": "font/ttf",

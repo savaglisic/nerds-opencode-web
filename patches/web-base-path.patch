@@ -33,8 +33,20 @@ index d71535182c..afa3c7cb6f 100644
      <script id="oc-theme-preload-script" src="/oc-theme-preload.js"></script>
    </head>
    <body class="antialiased overscroll-none text-12-regular overflow-hidden bg-v2-background-bg-deep">
+diff --git a/packages/app/src/context/server-sdk.tsx b/packages/app/src/context/server-sdk.tsx
+index 7dd2a6e59e..88d7cfddfc 100644
+--- a/packages/app/src/context/server-sdk.tsx
++++ b/packages/app/src/context/server-sdk.tsx
+@@ -190,6 +190,7 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
+ 
+   const eventFetch = (() => {
+     if (!platform.fetch || !server) return
++    if (import.meta.env.BASE_URL !== "/") return platform.fetch
+     try {
+       const url = new URL(server.http.url)
+       const loopback = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "::1"
 diff --git a/packages/app/src/entry.tsx b/packages/app/src/entry.tsx
-index 6e5f63fd4e..83b7e66d7c 100644
+index 6e5f63fd4e..05a1d5a045 100644
 --- a/packages/app/src/entry.tsx
 +++ b/packages/app/src/entry.tsx
 @@ -11,6 +11,7 @@ import { dict as zh } from "@/i18n/zh"
